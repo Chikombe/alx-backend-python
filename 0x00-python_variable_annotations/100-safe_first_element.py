@@ -6,12 +6,12 @@ Module to define a function to safely retrieve the first element of a list.
 from typing import Sequence, Any, Union
 
 
-def safe_first_element(lst: Sequence) -> Union[Any, None]:
+def safe_first_element(lst: Sequence[Any]) -> Union[Any, None]:
     """
     Safely retrieve the first element of a list.
 
     Args:
-        lst (Sequence): The input list.
+        lst (Sequence[Any]): The input list.
 
     Returns:
         Union[Any, None]: The first element of the list,
