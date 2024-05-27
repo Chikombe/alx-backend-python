@@ -41,3 +41,29 @@ class TestGithubOrgClient(unittest.TestCase):
 
         # Assert that the result matches the test payload
         self.assertEqual(result, test_payload)
+
+    def test_public_repos_url(self):
+        """
+        Test _public_repos_url method of GithubOrgClient
+        """
+        # Define a known payload for org method
+        org_payload = {"public_repos": 5}
+
+        # Patch the org property of GithubOrgClient to return the known payload
+        with patch.object(GithubOrgClient, 'org', new_callable=PropertyMock) as mock_org:
+            mock_org.return_value = org_payload
+
+            # Instantiate GithubOrgClient
+            client = GithubOrgClient("test_org")
+
+            # Call the _public_repos_url method
+            result = client._public_repos_url
+
+            # Define the expected URL based on the known payload
+            expected_url = f"https://api.github.com/orgs/test_org/repos?per_page=5&page=1"
+
+            # Assert that the result matches the expected URL
+            self.assertEqual(result, expected_url)
+
+            # Assert that the org property was accessed once
+            mock_org.assert_called_once()
