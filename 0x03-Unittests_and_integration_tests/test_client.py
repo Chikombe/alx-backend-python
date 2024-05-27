@@ -50,7 +50,8 @@ class TestGithubOrgClient(unittest.TestCase):
         org_payload = {"public_repos": 5}
 
         # Patch the org property of GithubOrgClient to return the known payload
-        with patch.object(GithubOrgClient, 'org', new_callable=PropertyMock) as mock_org:
+        with patch.object(GithubOrgClient, 'org',
+                          new_callable=PropertyMock) as mock_org:
             mock_org.return_value = org_payload
 
             # Instantiate GithubOrgClient
@@ -60,7 +61,9 @@ class TestGithubOrgClient(unittest.TestCase):
             result = client._public_repos_url
 
             # Define the expected URL based on the known payload
-            expected_url = f"https://api.github.com/orgs/test_org/repos?per_page=5&page=1"
+            expected_url = (
+                    f"https://api.github.com/orgs/test_org/repos?per_page=5&page=1"
+            )
 
             # Assert that the result matches the expected URL
             self.assertEqual(result, expected_url)
@@ -81,7 +84,9 @@ class TestGithubOrgClient(unittest.TestCase):
         ]
 
         # Set up mock response for _public_repos_url
-        mock_public_repos_url.return_value = "https://api.github.com/orgs/test_org/repos?per_page=2&page=1"
+        mock_public_repos_url.return_value = (
+                "https://api.github.com/orgs/test_org/repos?per_page=2&page=1"
+        )
 
         # Set up mock response for get_json
         mock_get_json.return_value = repo_payload
