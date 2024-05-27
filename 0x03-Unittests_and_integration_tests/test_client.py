@@ -132,3 +132,57 @@ class TestGithubOrgClient(unittest.TestCase):
 
         # Assert that get_json method was called once
         mock_get_json.assert_called_once()
+
+@parameterized_class(('org_payload', 'repos_payload', 'expected_repos', 'apache2_repos'),
+                     [(org_payload, repos_payload, expected_repos, apache2_repos)])
+class TestIntegrationGithubOrgClient(unittest.TestCase):
+    """
+    Integration test cases for the GithubOrgClient class
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """
+        Set up the test class
+        """
+        cls.get_patcher = patch('client.requests.get')
+        cls.mock_get = cls.get_patcher.start()
+
+        # Side effect to return different payloads based on URL
+        cls.mock_get.side_effect = [
+            Mock(json=lambda: cls.org_payload),
+            Mock(json=lambda: cls.repos_payload)
+        ]
+
+    @classmethod
+    def tearDownClass(cls):
+        """
+        Clean up after the test class
+        """
+        cls.get_patcher.stop()
+
+    def test_public_repos(self):
+        """
+        Test public_repos method of GithubOrgClient
+        """
+        # Instantiate GithubOrgClient
+        client = GithubOrgClient("test_org")
+
+        # Call the public_repos method
+        result = client.public_repos
+
+        # Assert that the result matches the expected list of repositories
+        self.assertEqual(result, self.expected_repos)
+
+    def test_has_license_apache2(self):
+        """
+        Test has_license method of GithubOrgClient with Apache 2 license
+        """
+        # Instantiate GithubOrgClient
+        client = GithubOrgClient("test_org")
+
+        # Call the has_license method with Apache 2 license
+        result = client.has_license(self.repos_payload, "apache-2.0")
+
+        # Assert that the result is True for Apache 2 license
+        self.assertTrue(result)
