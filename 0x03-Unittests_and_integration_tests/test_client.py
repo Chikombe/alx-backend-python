@@ -100,30 +100,31 @@ class TestGithubOrgClient(unittest.TestCase):
             ]
         }
 
-    @parameterized.expand([
-        ({"license": {"key": "my_license"}}, "my_license", True),
-        ({"license": {"key": "other_license"}}, "my_license", False),
-    ])
-    @patch('client.get_json')
-    def test_has_license(self, repo, license_key, expected_result,
-                         mock_get_json):
-        """
-        Test has_license method of GithubOrgClient
-        """
-        # Set up mock response
-        mock_get_json.return_value = repo
-
-        # Instantiate GithubOrgClient
-        client = GithubOrgClient("test_org")
-
-        # Call the has_license method
-        result = client.has_license(repo, license_key)
-
-        # Assert that the result matches the expected value
-        self.assertEqual(result, expected_result)
-
-        # Assert that get_json method was called once
+    mock_get_json.return_value = test_payload["repos"]
+    with patch(
+                "client.GithubOrgClient._public_repos_url",
+                new_callable=PropertyMock,
+                ) as mock_public_repos_url:
+        mock_public_repos_url.return_value = test_payload["repos_url"]
+        self.assertEqual(
+                GithubOrgClient("google").public_repos(),
+                [
+                    "episodes.dart",
+                    "kratu",
+                ],
+            )
+        mock_public_repos_url.assert_called_once()
         mock_get_json.assert_called_once()
+
+    @parameterized.expand([
+        ({'license': {'key': "bsd-3-clause"}}, "bsd-3-clause", True),
+        ({'license': {'key': "bsl-1.0"}}, "bsd-3-clause", False),
+    ])
+    def test_has_license(self, repo: Dict, key: str, expected: bool) -> None:
+        """Tests the `has_license` method."""
+        gh_org_client = GithubOrgClient("google")
+        client_has_licence = gh_org_client.has_license(repo, key)
+        self.assertEqual(client_has_licence, expected)
 
 
 @parameterized_class(('org_payload', 'repos_payload', 'expected_repos',
