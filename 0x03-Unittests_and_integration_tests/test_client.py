@@ -8,7 +8,7 @@ from unittest.mock import patch, Mock, PropertyMock
 from parameterized import parameterized, parameterized_class
 from typing import Dict
 from client import GithubOrgClient
-from fixtures import org_payload, repos_payload, expected_repos, apache2_repos
+from fixtures import TEST_PAYLOAD
 
 
 class TestGithubOrgClient(unittest.TestCase):
@@ -48,7 +48,7 @@ class TestGithubOrgClient(unittest.TestCase):
         Test _public_repos_url method of GithubOrgClient
         """
         # Define a known payload for org method
-        org_payload = {"public_repos": 5}
+        org_payload = {"repos_url": "https://api.github.com/orgs/google/repos"}
 
         # Patch the org property of GithubOrgClient to return the known payload
         with patch.object(GithubOrgClient, 'org',
@@ -62,9 +62,7 @@ class TestGithubOrgClient(unittest.TestCase):
             result = client._public_repos_url
 
             # Define the expected URL based on the known payload
-            expected_url = (
-                    f"https://api.github.com/orgs/test_org/repos?per_page=5&page=1"
-            )
+            expected_url = "https://api.github.com/orgs/google/repos"
 
             # Assert that the result matches the expected URL
             self.assertEqual(result, expected_url)
@@ -73,7 +71,8 @@ class TestGithubOrgClient(unittest.TestCase):
             mock_org.assert_called_once()
 
     @patch('client.get_json')
-    @patch.object(GithubOrgClient, '_public_repos_url', new_callable=PropertyMock)
+    @patch.object(GithubOrgClient, '_public_repos_url',
+                  new_callable=PropertyMock)
     def test_public_repos(self, mock_public_repos_url, mock_get_json):
         """
         Test public_repos method of GithubOrgClient
@@ -115,7 +114,8 @@ class TestGithubOrgClient(unittest.TestCase):
         ({"license": {"key": "other_license"}}, "my_license", False),
     ])
     @patch('client.get_json')
-    def test_has_license(self, repo, license_key, expected_result, mock_get_json):
+    def test_has_license(self, repo, license_key, expected_result,
+                         mock_get_json):
         """
         Test has_license method of GithubOrgClient
         """
@@ -134,8 +134,11 @@ class TestGithubOrgClient(unittest.TestCase):
         # Assert that get_json method was called once
         mock_get_json.assert_called_once()
 
-@parameterized_class(('org_payload', 'repos_payload', 'expected_repos', 'apache2_repos'),
-                     [(org_payload, repos_payload, expected_repos, apache2_repos)])
+
+@parameterized_class(('org_payload', 'repos_payload', 'expected_repos',
+                      'apache2_repos'),
+                     [(org_payload, repos_payload, expected_repos,
+                       apache2_repos)])
 class TestIntegrationGithubOrgClient(unittest.TestCase):
     """
     Integration test cases for the GithubOrgClient class
