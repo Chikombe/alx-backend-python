@@ -4,7 +4,7 @@ Unit tests for GithubOrgClient class
 """
 
 import unittest
-from unittest.mock import patch, Mock, PropertyMock
+from unittest.mock import patch, Mock, PropertyMock, MagicMock
 from parameterized import parameterized, parameterized_class
 from typing import Dict
 from client import GithubOrgClient
@@ -116,10 +116,10 @@ class TestGithubOrgClient(unittest.TestCase):
         mock_public_repos_url.assert_called_once()
         mock_get_json.assert_called_once()
 
-    @parameterized.expand([
-        ({'license': {'key': "bsd-3-clause"}}, "bsd-3-clause", True),
-        ({'license': {'key': "bsl-1.0"}}, "bsd-3-clause", False),
-    ])
+        @parameterized.expand([
+            ({'license': {'key': "bsd-3-clause"}}, "bsd-3-clause", True),
+            ({'license': {'key': "bsl-1.0"}}, "bsd-3-clause", False),
+            ])
     def test_has_license(self, repo: Dict, key: str, expected: bool) -> None:
         """Tests the `has_license` method."""
         gh_org_client = GithubOrgClient("google")
@@ -127,58 +127,47 @@ class TestGithubOrgClient(unittest.TestCase):
         self.assertEqual(client_has_licence, expected)
 
 
-@parameterized_class(('org_payload', 'repos_payload', 'expected_repos',
-                      'apache2_repos'),
-                     [(org_payload, repos_payload, expected_repos,
-                       apache2_repos)])
+@parameterized_class([
+    {
+        'org_payload': TEST_PAYLOAD[0][0],
+        'repos_payload': TEST_PAYLOAD[0][1],
+        'expected_repos': TEST_PAYLOAD[0][2],
+        'apache2_repos': TEST_PAYLOAD[0][3],
+    },
+])
 class TestIntegrationGithubOrgClient(unittest.TestCase):
-    """
-    Integration test cases for the GithubOrgClient class
-    """
+    """Performs integration tests for the `GithubOrgClient` class."""
+    @classmethod
+    def setUpClass(cls) -> None:
+        """Sets up class fixtures before running tests."""
+        route_payload = {
+            'https://api.github.com/orgs/google': cls.org_payload,
+            'https://api.github.com/orgs/google/repos': cls.repos_payload,
+        }
+
+        def get_payload(url):
+            if url in route_payload:
+                return Mock(**{'json.return_value': route_payload[url]})
+            return HTTPError
+
+        cls.get_patcher = patch("requests.get", side_effect=get_payload)
+        cls.get_patcher.start()
+
+    def test_public_repos(self) -> None:
+        """Tests the `public_repos` method."""
+        self.assertEqual(
+            GithubOrgClient("google").public_repos(),
+            self.expected_repos,
+        )
+
+    def test_public_repos_with_license(self) -> None:
+        """Tests the `public_repos` method with a license."""
+        self.assertEqual(
+            GithubOrgClient("google").public_repos(license="apache-2.0"),
+            self.apache2_repos,
+        )
 
     @classmethod
-    def setUpClass(cls):
-        """
-        Set up the test class
-        """
-        cls.get_patcher = patch('client.requests.get')
-        cls.mock_get = cls.get_patcher.start()
-
-        # Side effect to return different payloads based on URL
-        cls.mock_get.side_effect = [
-            Mock(json=lambda: cls.org_payload),
-            Mock(json=lambda: cls.repos_payload)
-        ]
-
-    @classmethod
-    def tearDownClass(cls):
-        """
-        Clean up after the test class
-        """
+    def tearDownClass(cls) -> None:
+        """Removes the class fixtures after running all tests."""
         cls.get_patcher.stop()
-
-    def test_public_repos(self):
-        """
-        Test public_repos method of GithubOrgClient
-        """
-        # Instantiate GithubOrgClient
-        client = GithubOrgClient("test_org")
-
-        # Call the public_repos method
-        result = client.public_repos
-
-        # Assert that the result matches the expected list of repositories
-        self.assertEqual(result, self.expected_repos)
-
-    def test_has_license_apache2(self):
-        """
-        Test has_license method of GithubOrgClient with Apache 2 license
-        """
-        # Instantiate GithubOrgClient
-        client = GithubOrgClient("test_org")
-
-        # Call the has_license method with Apache 2 license
-        result = client.has_license(self.repos_payload, "apache-2.0")
-
-        # Assert that the result is True for Apache 2 license
-        self.assertTrue(result)
